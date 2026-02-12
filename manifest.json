@@ -10,12 +10,14 @@
         {
             "src": "https://via.placeholder.com/192x192/c1a173/0f172a?text=G",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "https://via.placeholder.com/512x512/c1a173/0f172a?text=G",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         }
     ]
 }
