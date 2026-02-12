@@ -1,5 +1,5 @@
 /**
- * Sistema Agrovale - Google Apps Script Backend
+ * Sistema de Gerenciamento - Google Apps Script Backend
  * Handles CRUD operations for sales management.
  */
 

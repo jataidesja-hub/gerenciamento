@@ -2,7 +2,7 @@
 let salesData = [];
 let charts = {};
 let CONFIG = {
-    apiUrl: localStorage.getItem('agrovale_api_url') || ''
+    apiUrl: localStorage.getItem('gerenciamento_api_url') || ''
 };
 
 // DOM Elements
@@ -216,7 +216,7 @@ function resetForm() {
 function saveSettings() {
     const url = apiUrlInput.value.trim();
     if (url) {
-        localStorage.setItem('agrovale_api_url', url);
+        localStorage.setItem('gerenciamento_api_url', url);
         CONFIG.apiUrl = url;
         showNotification('Configuração salva!', 'success');
         refreshData();
