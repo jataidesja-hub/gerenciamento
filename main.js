@@ -1,7 +1,8 @@
 // State Management
 let salesData = [];
 let CONFIG = {
-    apiUrl: localStorage.getItem('agrovale_api_url') || ''
+    // URL de implantação fornecida pelo usuário
+    apiUrl: localStorage.getItem('agrovale_api_url') || 'https://script.google.com/macros/library/d/144eIrGSNScm3OfB6Ag7lrPmIMJyHXZBahNnj_d3-eQRhJdZ4hi7g0SzL/1'
 };
 
 // DOM Elements
@@ -55,9 +56,9 @@ async function refreshData() {
     try {
         const response = await fetch(`${CONFIG.apiUrl}?action=getSales`);
         const data = await response.json();
-        
+
         if (data.error) throw new Error(data.error);
-        
+
         salesData = data;
         renderDashboard();
         showNotification('Dados atualizados!', 'success');
@@ -82,7 +83,7 @@ async function saveSale(sale) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'saveSale', sale })
         });
-        
+
         // Note: with no-cors we can't read the response body, but usually it succeeds
         showNotification('Venda salva com sucesso!', 'success');
         resetForm();
@@ -96,7 +97,7 @@ async function saveSale(sale) {
 // Rendering
 function renderDashboard() {
     salesList.innerHTML = '';
-    
+
     // Stats
     const totalSales = salesData.length;
     const totalRevenue = salesData.reduce((acc, s) => acc + (parseFloat(s['Valor Total (R$)']) || 0), 0);
@@ -110,7 +111,7 @@ function renderDashboard() {
     salesData.forEach(sale => {
         const tr = document.createElement('tr');
         const statusClass = `status-${sale['Status do Pagamento']?.toLowerCase().replace(' ', '-') || 'default'}`;
-        
+
         tr.innerHTML = `
             <td>#${sale['ID da Venda'] || '---'}</td>
             <td><strong>${sale['Nome do Cliente'] || 'N/A'}</strong></td>
@@ -134,7 +135,7 @@ saleForm.addEventListener('submit', (e) => {
     formData.forEach((value, key) => {
         sale[key] = value;
     });
-    
+
     saveSale(sale);
 });
 
