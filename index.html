@@ -8,19 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <script>
-        // High-level cache and service worker destruction
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (registrations) {
-                for (let registration of registrations) { registration.unregister(); }
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(function (names) {
-                for (let name of names) caches.delete(name);
-            });
-        }
-    </script>
+
     <link rel="stylesheet" href="main.css?v=2.2">
     <link rel="manifest" href="manifest.json?v=2.2">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -38,6 +26,9 @@
                 </button>
                 <button class="nav-item" data-tab="new-sale">
                     <span class="icon">➕</span> Nova Venda
+                </button>
+                <button class="nav-item" data-tab="clients">
+                    <span class="icon">👥</span> Clientes
                 </button>
             </nav>
         </aside>
@@ -203,6 +194,37 @@
                         <button type="submit" class="btn btn-primary">Salvar Venda</button>
                     </div>
                 </form>
+            </section>
+
+            <!-- Clients Tab -->
+            <section id="clients" class="tab-content">
+                <div class="clients-toolbar">
+                    <div class="search-box">
+                        <input type="text" id="client-search" placeholder="Buscar cliente..."
+                            oninput="searchClients(this.value)">
+                    </div>
+                    <button class="btn btn-secondary" onclick="refreshData()">Atualizar</button>
+                </div>
+                <div class="clients-summary">
+                    <div class="stat-card">
+                        <h3>Total de Clientes</h3>
+                        <p id="total-clients">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Parcelas Pagas</h3>
+                        <p id="total-paid-installments">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Parcelas Pendentes</h3>
+                        <p id="total-pending-installments">0</p>
+                    </div>
+                </div>
+                <div id="clients-list">
+                    <div class="no-clients">
+                        <div class="empty-icon">👥</div>
+                        <p>Nenhum cliente encontrado</p>
+                    </div>
+                </div>
             </section>
         </main>
     </div>

@@ -1,6 +1,8 @@
 // State Management
 let salesData = [];
+let installmentsData = [];
 let charts = {};
+let filteredClients = null;
 let CONFIG = {
     apiUrl: 'https://script.google.com/macros/s/AKfycbxqTVpqoUI2NV5IUWZRaYNQjBX-LetKZ6Tg37SxbZvxlkBUMxNTuTu5_hgVZcO93RIQmA/exec'
 };
@@ -12,7 +14,6 @@ const tabTitle = document.getElementById('tab-title');
 const salesList = document.getElementById('sales-list');
 const saleForm = document.getElementById('sale-form');
 const notification = document.getElementById('notification');
-const apiUrlInput = document.getElementById('api-url');
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
@@ -44,6 +45,10 @@ function showTab(tabId) {
         activeContent.classList.add('active');
         tabTitle.textContent = activeTab.textContent.trim();
     }
+
+    if (tabId === 'clients') {
+        renderClients();
+    }
 }
 
 // API Interaction
@@ -52,14 +57,22 @@ async function refreshData() {
 
     showNotification('Carregando dados...', 'info');
     try {
-        const response = await fetch(`${CONFIG.apiUrl}?action=getSales`);
-        const data = await response.json();
+        const [salesRes, installRes] = await Promise.all([
+            fetch(`${CONFIG.apiUrl}?action=getSales`),
+            fetch(`${CONFIG.apiUrl}?action=getInstallments`)
+        ]);
 
-        if (data.error) throw new Error(data.error);
+        const salesJson = await salesRes.json();
+        const installJson = await installRes.json();
 
-        salesData = Array.isArray(data) ? data : [];
+        if (salesJson.error) throw new Error(salesJson.error);
+
+        salesData = Array.isArray(salesJson) ? salesJson : [];
+        installmentsData = Array.isArray(installJson) ? installJson : [];
+
         renderDashboard();
         renderCharts();
+        renderClients();
         showNotification('Dados atualizados!', 'success');
     } catch (error) {
         console.error(error);
@@ -85,7 +98,22 @@ async function saveSale(sale) {
     }
 }
 
-// Rendering
+async function markInstallmentPaid(saleId, installmentNumber) {
+    showNotification('Registrando pagamento...', 'info');
+    try {
+        await fetch(CONFIG.apiUrl, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'payInstallment', saleId, installmentNumber })
+        });
+        showNotification('Parcela marcada como paga!', 'success');
+        setTimeout(refreshData, 1000);
+    } catch (error) {
+        console.error(error);
+        showNotification('Erro ao registrar pagamento.', 'error');
+    }
+}
+
+// Dashboard Rendering
 function renderDashboard() {
     salesList.innerHTML = '';
 
@@ -184,6 +212,216 @@ function renderCharts() {
     });
 }
 
+// ===== CLIENTS TAB =====
+
+function getClientGroups() {
+    const groups = {};
+    salesData.forEach(sale => {
+        const name = (sale['Nome do Cliente'] || 'Sem Nome').trim();
+        if (!groups[name]) {
+            groups[name] = {
+                name: name,
+                city: sale['Cidade/UF'] || '',
+                phone: sale['Telefone / WhatsApp'] || '',
+                sales: []
+            };
+        }
+        // Update contact info if more recent
+        if (sale['Cidade/UF']) groups[name].city = sale['Cidade/UF'];
+        if (sale['Telefone / WhatsApp']) groups[name].phone = sale['Telefone / WhatsApp'];
+        groups[name].sales.push(sale);
+    });
+    return groups;
+}
+
+function getInstallmentsForSale(saleId) {
+    return installmentsData.filter(i => i['ID Venda'] === saleId);
+}
+
+function renderClients() {
+    const clientsList = document.getElementById('clients-list');
+    if (!clientsList) return;
+
+    const groups = getClientGroups();
+    const clientNames = Object.keys(groups);
+
+    // Apply search filter
+    let displayClients = clientNames;
+    if (filteredClients !== null) {
+        displayClients = filteredClients;
+    }
+
+    // Calculate totals
+    let totalPaid = 0;
+    let totalPending = 0;
+
+    installmentsData.forEach(inst => {
+        if (inst['Status'] === 'Pago') totalPaid++;
+        else totalPending++;
+    });
+
+    const totalClientsEl = document.getElementById('total-clients');
+    const totalPaidEl = document.getElementById('total-paid-installments');
+    const totalPendingEl = document.getElementById('total-pending-installments');
+
+    if (totalClientsEl) totalClientsEl.textContent = clientNames.length;
+    if (totalPaidEl) totalPaidEl.textContent = totalPaid;
+    if (totalPendingEl) totalPendingEl.textContent = totalPending;
+
+    if (displayClients.length === 0) {
+        clientsList.innerHTML = `
+            <div class="no-clients">
+                <div class="empty-icon">👥</div>
+                <p>Nenhum cliente encontrado</p>
+            </div>`;
+        return;
+    }
+
+    let html = '';
+    displayClients.forEach(name => {
+        const client = groups[name];
+        if (!client) return;
+
+        const totalValue = client.sales.reduce((acc, s) => acc + (parseFloat(s['Valor Total (R$)']) || 0), 0);
+        const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        const safeId = name.replace(/[^a-zA-Z0-9]/g, '_');
+
+        // Get all installments for this client
+        let clientPaid = 0;
+        let clientTotal = 0;
+        client.sales.forEach(sale => {
+            const saleInstallments = getInstallmentsForSale(sale['ID da Venda']);
+            saleInstallments.forEach(inst => {
+                clientTotal++;
+                if (inst['Status'] === 'Pago') clientPaid++;
+            });
+        });
+
+        html += `
+            <div class="client-card">
+                <div class="client-header" onclick="toggleClientDetails('${safeId}')">
+                    <div class="client-info">
+                        <div class="client-avatar">${initials}</div>
+                        <div>
+                            <div class="client-name">${name}</div>
+                            <div class="client-meta">${client.city || 'Sem cidade'} · ${client.phone || 'Sem telefone'}</div>
+                        </div>
+                    </div>
+                    <div class="client-stats">
+                        <div class="client-stat">
+                            <div class="value">${client.sales.length}</div>
+                            <div class="label">Compras</div>
+                        </div>
+                        <div class="client-stat">
+                            <div class="value">R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                            <div class="label">Total</div>
+                        </div>
+                        <button class="client-toggle" id="toggle-${safeId}">▼</button>
+                    </div>
+                </div>
+                <div class="client-details" id="details-${safeId}">
+                    ${renderClientSales(client)}
+                </div>
+            </div>`;
+    });
+
+    clientsList.innerHTML = html;
+}
+
+function renderClientSales(client) {
+    let html = '';
+    client.sales.forEach(sale => {
+        const saleId = sale['ID da Venda'];
+        const shortId = saleId?.toString().split('-').pop() || '---';
+        const status = sale['Status do Pagamento'] || 'Pendente';
+        const statusClass = `status-${status.toLowerCase().replace(/\s+/g, '-')}`;
+        const totalValue = parseFloat(sale['Valor Total (R$)'] || 0);
+        const installments = getInstallmentsForSale(saleId);
+        const numParcelas = parseInt(sale['Parcelas']) || 1;
+
+        const paidCount = installments.filter(i => i['Status'] === 'Pago').length;
+        const pendingCount = installments.length - paidCount;
+        const progressPct = installments.length > 0 ? Math.round((paidCount / installments.length) * 100) : 0;
+
+        html += `
+            <div class="sale-block">
+                <div class="sale-block-header">
+                    <h5>Venda #${shortId} — ${formatDate(sale['Data da Compra'])}</h5>
+                    <div>
+                        <span class="status ${statusClass}">${status}</span>
+                        <span style="margin-left:8px; color: var(--text-muted); font-size:0.85rem;">
+                            R$ ${totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </span>
+                    </div>
+                </div>`;
+
+        if (installments.length > 0) {
+            html += `
+                <div style="margin-bottom:8px; font-size:0.85rem; color: var(--text-muted);">
+                    ✅ ${paidCount} paga(s) · ⏳ ${pendingCount} pendente(s) de ${installments.length}
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: ${progressPct}%"></div>
+                </div>
+                <div class="installments-grid" style="margin-top: 0.75rem;">`;
+
+            installments.forEach(inst => {
+                const isPaid = inst['Status'] === 'Pago';
+                const instClass = isPaid ? 'paid' : 'pending';
+                const instValue = parseFloat(inst['Valor (R$)'] || 0);
+
+                html += `
+                    <div class="installment-item ${instClass}">
+                        <div>
+                            <span class="installment-label">${isPaid ? '✅' : '⏳'} ${inst['Nº Parcela']}ª</span>
+                            <div class="installment-value">R$ ${instValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                        </div>
+                        ${!isPaid ? `<button class="installment-action" onclick="markInstallmentPaid('${saleId}', ${inst['Nº Parcela']})" title="Marcar como paga">💰</button>` : `<span style="color: var(--success); font-size: 0.8rem;">${formatDate(inst['Data Pagamento'])}</span>`}
+                    </div>`;
+            });
+
+            html += '</div>';
+        } else {
+            // No installments tracked — show basic info
+            html += `
+                <div style="color: var(--text-muted); font-size:0.85rem; padding: 0.5rem 0;">
+                    ${numParcelas} parcela(s) — Sem controle detalhado de parcelas
+                </div>`;
+        }
+
+        html += '</div>';
+    });
+
+    return html;
+}
+
+function toggleClientDetails(safeId) {
+    const details = document.getElementById(`details-${safeId}`);
+    const toggle = document.getElementById(`toggle-${safeId}`);
+    if (details && toggle) {
+        details.classList.toggle('open');
+        toggle.classList.toggle('open');
+    }
+}
+
+function searchClients(query) {
+    const groups = getClientGroups();
+    const all = Object.keys(groups);
+
+    if (!query || query.trim() === '') {
+        filteredClients = null;
+    } else {
+        const q = query.toLowerCase();
+        filteredClients = all.filter(name => {
+            const client = groups[name];
+            return name.toLowerCase().includes(q) ||
+                (client.city && client.city.toLowerCase().includes(q)) ||
+                (client.phone && client.phone.toLowerCase().includes(q));
+        });
+    }
+    renderClients();
+}
+
 // Form Handling
 saleForm.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -201,7 +439,6 @@ function resetForm() {
     const rowInput = saleForm.querySelector('[name="rowIndex"]');
     if (rowInput) rowInput.remove();
 }
-
 
 // Utilities
 function showNotification(message, type = 'info') {

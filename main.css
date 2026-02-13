@@ -279,7 +279,7 @@ tr:hover td {
     color: var(--success);
 }
 
-.status-aberto {
+.status-em-aberto {
     background: rgba(245, 158, 11, 0.2);
     color: var(--warning);
 }
@@ -440,41 +440,249 @@ select:focus {
     border-left: 4px solid var(--danger);
 }
 
-/* Settings */
-.glass-card {
+/* Clients Tab */
+.clients-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.search-box input {
+    width: 100%;
+    padding-left: 40px;
+}
+
+.search-box::before {
+    content: '🔍';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    z-index: 1;
+}
+
+.clients-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.client-card {
     background: var(--bg-card);
-    padding: 2.5rem;
-    border-radius: 24px;
+    backdrop-filter: blur(5px);
     border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
 }
 
-.glass-card h4 {
-    margin-bottom: 1rem;
+.client-card:hover {
+    border-color: rgba(193, 161, 115, 0.3);
 }
 
-.glass-card p {
+.client-header {
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.client-header:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.client-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.client-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--bg-dark);
+}
+
+.client-name {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.client-meta {
     color: var(--text-muted);
-    margin-bottom: 2rem;
+    font-size: 0.8rem;
+    margin-top: 2px;
 }
 
-.api-instructions {
-    margin-top: 2rem;
-    padding-top: 2rem;
+.client-stats {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.client-stat {
+    text-align: center;
+}
+
+.client-stat .value {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.client-stat .label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.client-toggle {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    padding: 4px;
+}
+
+.client-toggle.open {
+    transform: rotate(180deg);
+}
+
+.client-details {
+    display: none;
+    padding: 0 1.5rem 1.5rem;
     border-top: 1px solid var(--border);
 }
 
-.api-instructions h5 {
+.client-details.open {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+.sale-block {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sale-block-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.sale-block-header h5 {
+    font-size: 0.9rem;
     color: var(--primary);
+}
+
+.installments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+}
+
+.installment-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: all 0.2s ease;
+}
+
+.installment-item.paid {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.installment-item.pending {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.installment-label {
+    font-weight: 500;
+}
+
+.installment-value {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.installment-action {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px;
+    transition: transform 0.2s ease;
+}
+
+.installment-action:hover {
+    transform: scale(1.2);
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), #34d399);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.no-clients {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+}
+
+.no-clients .empty-icon {
+    font-size: 3rem;
     margin-bottom: 1rem;
 }
 
-.api-instructions ol {
-    margin-left: 1.2rem;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+/* Table responsive */
+.table-container {
+    overflow-x: auto;
 }
 
 @media (max-width: 1024px) {
